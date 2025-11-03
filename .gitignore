@@ -1,0 +1,7 @@
+# secrets
+.env
+
+# runtime
+memory_db.json
+__pycache__/
+*.pyc
