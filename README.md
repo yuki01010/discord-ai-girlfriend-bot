@@ -42,6 +42,9 @@ cd discord-ai-girlfriend-bot
 
 # 依存ライブラリをインストール
 pip install -r requirements.txt
+```
+
+---
 
 ## 📜 ライセンス
 MIT License  
