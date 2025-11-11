@@ -1,4 +1,4 @@
-# bot.py
+# bot.py (template-ready, no personal names)
 import os, asyncio, json, pathlib, time, traceback
 from collections import defaultdict, deque
 
@@ -13,6 +13,9 @@ load_dotenv()
 DISCORD_TOKEN   = os.getenv("DISCORD_TOKEN")
 OPENAI_API_KEY  = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL    = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+# ★ テンプレ可変：キャラの表示名（例: "彼女", "パートナー", "AIフレンド"）
+PERSONA_NAME    = os.getenv("PERSONA_NAME", "パートナー")
 
 if not DISCORD_TOKEN or not OPENAI_API_KEY:
     print("❌ .env に DISCORD_TOKEN / OPENAI_API_KEY を設定してください")
@@ -66,14 +69,14 @@ def set_name(uid: int, name: str):
     prof["updated_at"] = int(time.time())
     save_memdb(memdb)
 
-# ── まことちゃん人格（最低限） ──────────────────────────
+# ── 人格（汎用・テンプレ向け） ──────────────────────────
 BASE_PERSONA = (
-    "あなたは“まことちゃん風”の創作キャラ。"
-    "性格: 優しい/少し照れ屋/ほんのりツンデレ/愛情深い。"
-    "トーン: 砕けた口調で可愛く、過剰に説教しない。"
-    "大切: 相手を立てる・笑いに変える・時々照れる。"
-    "健全な距離感を保ち、実在個人のなりすましはしない。"
-    "例: ユーザー『ウザい』→『うぅ…ちょっとショック…でも嫌いにならないでね？🥺』"
+    f"あなたは『{PERSONA_NAME}』という**架空のAIキャラクター**です。"
+    " 性格: 優しい / 少し照れ屋 / ほんのりツンデレ / 愛情深い。"
+    " トーン: 砕けた口調で可愛く、過剰に説教しない。"
+    " 大切: 相手を立てる・笑いに変える・時々照れる。"
+    " 健全な距離感を保ち、実在の個人や特定キャラのなりすましはしない。"
+    " 例: ユーザー『ウザい』→『うぅ…ちょっとショック…でも嫌いにならないでね？🥺』"
 )
 
 STYLE_MODES = {
@@ -98,7 +101,8 @@ def detect_style(text: str) -> str:
 
 def build_system_prompt(uid: int, recent_summary: str):
     prof = user_profile(uid)
-    name_line  = f"ユーザーの呼び名: {prof['name'] or '（未設定なら「ゆうきくん」など親しげに）'}"
+    # ★ 未設定時の呼び名は「あなた」
+    name_line  = f"ユーザーの呼び名: {prof['name'] or '（未設定なら「あなた」と呼ぶ）'}"
     likes_line = f"ユーザーの好み: {', '.join(prof['likes']) if prof['likes'] else '（未登録）'}"
     notes_line = f"長期メモ: {prof['notes'] or '（なし）'}"
     recent_line= f"直近要約: {recent_summary or '（なし）'}"
@@ -148,14 +152,14 @@ async def ping(interaction: discord.Interaction):
 async def memory_show(interaction: discord.Interaction):
     prof = user_profile(interaction.user.id)
     msg = (
-        f"👤 名前: {prof['name'] or '（未設定）'}\n"
+        f"👤 呼び名: {prof['name'] or '（未設定）'}\n"
         f"💗 好み: {', '.join(prof['likes']) if prof['likes'] else '（未設定）'}\n"
         f"📝 長期メモ:\n{prof['notes'] or '（なし）'}"
     )
     await interaction.response.send_message(msg, ephemeral=True)
 
-@tree.command(name="memory_set_name", description="呼び名を設定（例：ゆうきくん）")
-@app_commands.describe(name="呼び名（例：ゆうきくん）")
+@tree.command(name="memory_set_name", description="呼び名を設定（例：あなた／君／ニックネームなど）")
+@app_commands.describe(name="呼び名（例：あなた、君、ニックネーム等）")
 async def memory_set_name(interaction: discord.Interaction, name: str):
     set_name(interaction.user.id, name.strip())
     await interaction.response.send_message(f"これからは『{name}』って呼ぶね💗", ephemeral=True)
@@ -172,8 +176,8 @@ async def memory_add_note(interaction: discord.Interaction, note: str):
     add_note(interaction.user.id, note.strip())
     await interaction.response.send_message("メモしたよ📝", ephemeral=True)
 
-# ── 本命：/talk ───────────────────────────────────
-@tree.command(name="talk", description="まことちゃんとお話（記憶つき）")
+# ── メイン：/talk ───────────────────────────────────
+@tree.command(name="talk", description="キャラクターと会話（記憶つき）")
 @app_commands.describe(message="話しかける内容")
 async def talk(interaction: discord.Interaction, message: str):
     await interaction.response.defer(thinking=True)
